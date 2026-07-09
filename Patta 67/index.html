@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>C - 212 Card Arena - Live Scorecard</title>
+  <meta name="description" content="A premium, responsive live scorecard and leaderboard for your card game arena. Auto-calculating, mobile-friendly, and persisted locally.">
+  
+  <!-- SEO & Theme Icons -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎴</text></svg>">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="arena-background-glows">
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+  </div>
+
+  <div class="arena-app">
+    <!-- Header -->
+    <header class="arena-header">
+      <div class="header-logo-container">
+        <div class="card-logo-icon">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+            <path d="M19,2H5C3.89,2 3,2.89 3,4V20C3,21.11 3.89,22 5,22H19C20.11,22 21,21.11 21,20V4C21,2.89 20.11,2 19,2M19,20H5V4H19V20M12.92,10.68L15.35,12.35L14.42,9.45L16.85,7.77H13.85L12.92,4.86L12,7.77H9L11.42,9.45L10.5,12.35L12.92,10.68M11.08,13.32L8.65,11.65L9.58,14.55L7.15,16.23H10.15L11.08,19.14L12,16.23H15L12.58,14.55L13.5,11.65L11.08,13.32Z" />
+          </svg>
+        </div>
+        <div class="header-title-wrapper">
+          <h1 id="app-title" class="arena-title">C - 212 Card Arena</h1>
+          <p class="arena-subtitle">Live Match Scorecard & Leaderboard</p>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <button id="btn-add-player" class="btn btn-primary" title="Add a new player to the game">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M15,14C12.33,14 7,15.33 7,18V20H23V18C23,15.33 17.67,14 15,14M6,10V7H4V10H1V12H4V15H6V12H9V10M15,12A4,4 0 0,0 19,8A4,4 0 0,0 15,4A4,4 0 0,0 11,8A4,4 0 0,0 15,12Z"/>
+          </svg>
+          Add Player
+        </button>
+        <button id="btn-add-round" class="btn btn-secondary" title="Add a new round to the scoreboard">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+          </svg>
+          Add Round
+        </button>
+        <button id="btn-clear-scorecard" class="btn btn-danger" title="Clear all scorecard data">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M9,3H15V5H19V7H5V5H9V3M6,8H18V20C18,21.1 17.1,22 16,22H8C6.9,22 6,21.1 6,20V8M8,10V18H10V10H8M11,10V18H13V10H11M14,10V18H16V10H14Z" />
+          </svg>
+          Clear Arena
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="arena-main">
+      
+      <!-- Scorecard Panel -->
+      <section class="panel-section scorecard-panel" aria-labelledby="scorecard-heading">
+        <div class="panel-header">
+          <h2 id="scorecard-heading" class="panel-title">Scoreboard</h2>
+          <span id="rounds-badge" class="badge">0 Rounds</span>
+        </div>
+        
+        <div class="table-outer-wrapper">
+          <div class="table-inner-container">
+            <table id="scorecard-table" class="scorecard-table">
+              <thead>
+                <!-- Will be dynamically populated -->
+                <tr id="table-header-row"></tr>
+              </thead>
+              <tbody id="table-body">
+                <!-- Will be dynamically populated -->
+              </tbody>
+            </table>
+            
+            <!-- Empty State -->
+            <div id="scorecard-empty-state" class="empty-state hidden">
+              <div class="empty-icon">🃏</div>
+              <h3>The Arena is Empty</h3>
+              <p>Add some players and a round to start tracking scores!</p>
+              <div class="empty-actions">
+                <button id="btn-empty-add-player" class="btn btn-primary">Add First Player</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Leaderboard Panel -->
+      <section class="panel-section leaderboard-panel" aria-labelledby="leaderboard-heading">
+        <div class="panel-header">
+          <h2 id="leaderboard-heading" class="panel-title">Leaderboard</h2>
+          <span id="players-badge" class="badge">0 Players</span>
+        </div>
+
+        <div class="leaderboard-container">
+          <ol id="leaderboard-list" class="leaderboard-list">
+            <!-- Will be dynamically populated -->
+          </ol>
+          
+          <!-- Empty State -->
+          <div id="leaderboard-empty-state" class="empty-state-simple hidden">
+            <p>No players in the game.</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Custom Confirmation Dialog (Modal) -->
+  <div id="clear-confirm-modal" class="modal-overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="modal-title">
+    <div class="modal-content glass-card">
+      <div class="modal-icon warning-icon">
+        <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor">
+          <path d="M12,2L1,21H23L12,2M12,6L19.8,19H4.2L12,6M11,10V14H13V10H11M11,16V18H13V16H11Z" />
+        </svg>
+      </div>
+      <h3 id="modal-title">Reset the Arena?</h3>
+      <p>This will permanently clear all players, rounds, and scores. This action cannot be undone.</p>
+      <div class="modal-buttons">
+        <button id="modal-btn-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="modal-btn-confirm" class="btn btn-danger">Yes, Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Player Modal -->
+  <div id="add-player-modal" class="modal-overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="player-modal-title">
+    <div class="modal-content glass-card">
+      <h3 id="player-modal-title">Add New Player</h3>
+      <form id="add-player-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="new-player-name">Player Name</label>
+          <input type="text" id="new-player-name" placeholder="Enter player name..." autocomplete="off" maxlength="20" required>
+        </div>
+        <div class="modal-buttons">
+          <button type="button" id="player-modal-btn-cancel" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="player-modal-btn-submit" class="btn btn-primary">Add Player</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript File -->
+  <script src="app.js"></script>
+</body>
+</html>
