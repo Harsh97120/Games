@@ -107,6 +107,29 @@
       margin: 0;
     }
 
+    .reset-btn {
+      background: transparent;
+      border: 1.5px solid var(--chili);
+      color: var(--chili);
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 13.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all var(--transition-normal);
+    }
+
+    .reset-btn:hover {
+      background: var(--chili);
+      color: #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(179, 58, 58, 0.3);
+    }
+
     /* ===== Layout ===== */
     main {
       max-width: 1040px;
@@ -513,6 +536,7 @@
         <h1>Expense Divider</h1>
         <p class="tag">Split the bill, not the friendship.</p>
       </div>
+      <button class="reset-btn" onclick="confirmReset()" title="Reset all data to default">🔄 Reset Arena</button>
     </div>
   </header>
 
@@ -564,28 +588,61 @@
     let uidCounter = 1;
     const uid = () => 'id' + (uidCounter++) + '_' + Math.random().toString(36).slice(2, 7);
 
-    let state = {
-      dishes: [
-        { id: uid(), name: 'Pav Bhaji', price: 120, count: 0 },
-        { id: uid(), name: 'Pulav', price: 130, count: 0 },
-        { id: uid(), name: 'Soup', price: 100, count: 0 },
-        { id: uid(), name: 'Manchurian', price: 110, count: 0 },
-        { id: uid(), name: 'Bhel', price: 80, count: 0 },
-        { id: uid(), name: 'Noodles', price: 100, count: 0 },
-        { id: uid(), name: 'Sev Tari', price: 90, count: 0 },
-        { id: uid(), name: 'Sev Usal', price: 90, count: 0 },
-        { id: uid(), name: 'Idli', price: 70, count: 0 },
-        { id: uid(), name: 'Bhajiya', price: 80, count: 0 },
-        { id: uid(), name: 'Gathiya', price: 80, count: 0 },
-        { id: uid(), name: 'Khaman', price: 60, count: 0 },
-        { id: uid(), name: 'Ghughra', price: 70, count: 0 },
-        { id: uid(), name: 'Dahivada', price: 80, count: 0 },
-        { id: uid(), name: 'Fafda', price: 100, count: 0 }
-      ],
-      people: ['Harsh', 'Prince', 'Jenish', 'Apurv', 'Faran', 'Mukund', 'Naitik', 'Meetyo', 'Jeinil', 'Gaurav']
-        .map(name => ({ id: uid(), name })),
-      entries: [] // { id, personId, dishId, num, denom }
-    };
+    const CACHE_KEY = 'gande_londe_expense_divider_state_v1';
+
+    function getInitialState() {
+      return {
+        dishes: [
+          { id: uid(), name: 'Pav Bhaji', price: 120, count: 0 },
+          { id: uid(), name: 'Pulav', price: 130, count: 0 },
+          { id: uid(), name: 'Soup', price: 100, count: 0 },
+          { id: uid(), name: 'Manchurian', price: 110, count: 0 },
+          { id: uid(), name: 'Bhel', price: 80, count: 0 },
+          { id: uid(), name: 'Noodles', price: 100, count: 0 },
+          { id: uid(), name: 'Sev Tari', price: 90, count: 0 },
+          { id: uid(), name: 'Sev Usal', price: 90, count: 0 },
+          { id: uid(), name: 'Idli', price: 70, count: 0 },
+          { id: uid(), name: 'Bhajiya', price: 80, count: 0 },
+          { id: uid(), name: 'Gathiya', price: 80, count: 0 },
+          { id: uid(), name: 'Khaman', price: 60, count: 0 },
+          { id: uid(), name: 'Ghughra', price: 70, count: 0 },
+          { id: uid(), name: 'Dahivada', price: 80, count: 0 },
+          { id: uid(), name: 'Fafda', price: 100, count: 0 }
+        ],
+        people: ['Harsh', 'Prince', 'Jenish', 'Apurv', 'Faran', 'Mukund', 'Naitik', 'Meetyo', 'Jeinil', 'Gaurav']
+          .map(name => ({ id: uid(), name })),
+        entries: [] // { id, personId, dishId, num, denom }
+      };
+    }
+
+    let state;
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        state = JSON.parse(cached);
+      } else {
+        state = getInitialState();
+      }
+    } catch (e) {
+      console.error("Failed to load cached state", e);
+      state = getInitialState();
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.error("Failed to save state", e);
+      }
+    }
+
+    function confirmReset() {
+      if (confirm("Are you sure you want to reset all dishes, squad, and claims to default?")) {
+        state = getInitialState();
+        saveState();
+        render();
+      }
+    }
 
     function fmt(n) {
       if (!isFinite(n)) return '0';
@@ -668,6 +725,8 @@
 
     // ---------- Render ----------
     function render() {
+      saveState();
+
       const active = document.activeElement;
       const activeId = active && active.id;
       const selStart = (active && typeof active.selectionStart === 'number') ? active.selectionStart : null;
