@@ -818,8 +818,8 @@
     function updateDish(id, field, value) {
       const d = state.dishes.find(d => d.id === id);
       if (!d) return;
-      d[field] = field === 'name' ? value : value;
-      render();
+      d[field] = value;
+      updateCalculations();
     }
 
     // ---------- People ----------
@@ -836,7 +836,7 @@
       const p = state.people.find(p => p.id === id);
       if (!p) return;
       p.name = value;
-      render();
+      updateCalculations();
     }
 
     // ---------- Entries ----------
@@ -853,13 +853,64 @@
       const e = state.entries.find(e => e.id === id);
       if (!e) return;
       e[field] = value;
-      render();
+      updateCalculations();
     }
     function setFrac(id, num, denom) {
       const e = state.entries.find(e => e.id === id);
       if (!e) return;
       e.num = num; e.denom = denom;
-      render();
+      updateCalculations();
+    }
+
+    // ---------- Calculations & Caching Updates ----------
+    function updateCalculations() {
+      saveState();
+
+      // Update all entry costs in the DOM
+      state.entries.forEach(e => {
+        const el = document.getElementById(`entry-cost-val-${e.id}`);
+        if (el) el.textContent = `₹${fmt(entryCost(e))}`;
+      });
+
+      // Update all person totals in the DOM
+      state.people.forEach(p => {
+        const myEntries = state.entries.filter(ent => ent.personId === p.id);
+        const total = myEntries.reduce((s, ent) => s + entryCost(ent), 0);
+        const el = document.getElementById(`person-total-val-${p.id}`);
+        if (el) el.textContent = `₹${fmt(total)}`;
+      });
+
+      // Update all dish metadata in the DOM
+      state.dishes.forEach(d => {
+        const assigned = dishAssignedUnits(d.id);
+        const count = Number(d.count) || 0;
+        const remaining = count - assigned;
+
+        const elUnit = document.getElementById(`dish-unit-val-${d.id}`);
+        if (elUnit) elUnit.textContent = `₹${fmt(unitPrice(d))} per portion`;
+
+        const elMeta = document.getElementById(`dish-meta-val-${d.id}`);
+        if (elMeta) {
+          let metaClass = '', metaText = '';
+          if (count === 0 && assigned === 0) {
+            metaText = '0 ordered';
+          } else if (Math.abs(remaining) < 0.001) {
+            metaClass = 'ok';
+            metaText = `✓ fully divided (${fmt(assigned)}/${fmt(count)})`;
+          } else if (remaining > 0) {
+            metaText = `${fmt(remaining)} of ${fmt(count)} unclaimed`;
+          } else {
+            metaClass = 'over';
+            metaText = `⚠ over-claimed by ${fmt(-remaining)}`;
+          }
+          elMeta.textContent = metaText;
+          elMeta.className = `dish-meta ${metaClass}`;
+          if (elUnit) elUnit.className = `dish-meta ${metaClass}`;
+        }
+      });
+
+      // Update receipt
+      renderReceipt();
     }
 
     // ---------- Render ----------
@@ -908,20 +959,20 @@
         return `
     <div class="dish-row">
       <input type="text" id="dish-name-${d.id}" value="${escapeHtml(d.name)}"
-        oninput="updateDish('${d.id}','name',this.value)">
+        oninput="updateDish('${d.id}','name',this.value)" onblur="render()">
       <div class="price-wrap">
         <span>₹</span>
         <input type="number" id="dish-price-${d.id}" min="0" value="${d.price}"
-          oninput="updateDish('${d.id}','price',this.value)">
+          oninput="updateDish('${d.id}','price',this.value)" onblur="render()">
       </div>
       <div class="count-wrap">
         <span>×</span>
         <input type="number" id="dish-count-${d.id}" min="0" value="${d.count}"
-          oninput="updateDish('${d.id}','count',this.value)">
+          oninput="updateDish('${d.id}','count',this.value)" onblur="render()">
       </div>
       <button class="icon-btn" onclick="removeDish('${d.id}')" title="Remove dish">✕</button>
-      <div class="dish-meta ${metaClass}" style="grid-column:1/3;">₹${fmt(unitPrice(d))} per portion</div>
-      <div class="dish-meta ${metaClass}" style="grid-column:3/5; text-align:right;">${metaText}</div>
+      <div id="dish-unit-val-${d.id}" class="dish-meta ${metaClass}" style="grid-column:1/3;">₹${fmt(unitPrice(d))} per portion</div>
+      <div id="dish-meta-val-${d.id}" class="dish-meta ${metaClass}" style="grid-column:3/5; text-align:right;">${metaText}</div>
     </div>`;
       }).join('') || '<div class="empty-hint">No dishes yet — add one above.</div>';
     }
@@ -943,12 +994,12 @@
         </select>
         <div class="frac-wrap">
           <input type="number" id="entry-num-${e.id}" min="0" value="${e.num}"
-            oninput="updateEntry('${e.id}','num',this.value)">
+            oninput="updateEntry('${e.id}','num',this.value)" onblur="render()">
           <span>/</span>
           <input type="number" id="entry-denom-${e.id}" min="1" value="${e.denom}"
-            oninput="updateEntry('${e.id}','denom',this.value)">
+            oninput="updateEntry('${e.id}','denom',this.value)" onblur="render()">
         </div>
-        <div class="entry-cost">₹${fmt(entryCost(e))}</div>
+        <div id="entry-cost-val-${e.id}" class="entry-cost">₹${fmt(entryCost(e))}</div>
         <span></span>
         <button class="icon-btn" onclick="removeEntry('${e.id}')" title="Remove item">✕</button>
       </div>`).join('');
@@ -957,8 +1008,8 @@
     <div class="person">
       <div class="person-head">
         <input type="text" id="person-name-${p.id}" value="${escapeHtml(p.name)}"
-          oninput="updatePerson('${p.id}', this.value)">
-        <span class="person-total">₹${fmt(total)}</span>
+          oninput="updatePerson('${p.id}', this.value)" onblur="render()">
+        <span id="person-total-val-${p.id}" class="person-total">₹${fmt(total)}</span>
         <button class="icon-btn" onclick="removePerson('${p.id}')" title="Remove person">✕</button>
       </div>
       <div class="person-body">
