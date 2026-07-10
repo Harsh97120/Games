@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Divider — Gande Londe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --paper: #FBF3E7;
+      --paper-dark: #F1E6D3;
+      --ink: #2A2118;
+      --ink-soft: #5B4E3F;
+      --counter: #241A14;
+      --counter-2: #3A2A1E;
+      --chili: #B33A3A;
+      --chili-dark: #8F2C2C;
+      --turmeric: #E2A33D;
+      --mint: #4C7A5D;
+      --mint-dark: #375B45;
+      --line: #D8C9AE;
+      --shadow: rgba(42, 33, 24, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .hand {
+      font-family: 'Kalam', cursive;
+    }
+
+    /* ===== Header ===== */
+    header.stall {
+      background: linear-gradient(180deg, var(--counter) 0%, var(--counter-2) 100%);
+      padding: 28px 20px 34px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    header.stall::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 14px;
+      background:
+        linear-gradient(135deg, var(--paper) 25%, transparent 25%) 0 0/14px 14px,
+        linear-gradient(-135deg, var(--paper) 25%, transparent 25%) 0 0/14px 14px;
+      background-color: var(--counter-2);
+    }
+
+    .stall-inner {
+      max-width: 1040px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .stamp {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 2px solid var(--turmeric);
+      color: var(--turmeric);
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      transform: rotate(-2deg);
+    }
+
+    .stall h1 {
+      font-family: 'Kalam', cursive;
+      font-weight: 700;
+      color: var(--paper);
+      font-size: clamp(30px, 5vw, 46px);
+      margin: 6px 0 2px;
+      line-height: 1;
+    }
+
+    .stall p.tag {
+      color: #C9B79C;
+      font-size: 14px;
+      margin: 0;
+    }
+
+    /* ===== Layout ===== */
+    main {
+      max-width: 1040px;
+      margin: -12px auto 60px;
+      padding: 0 20px;
+      position: relative;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+      align-items: start;
+      margin-top: 26px;
+    }
+
+    @media (max-width: 860px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--paper);
+      border: 1.5px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 6px 18px var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 16px 18px 10px;
+      border-bottom: 1.5px dashed var(--line);
+    }
+
+    .card-head h2 {
+      font-family: 'Kalam', cursive;
+      font-size: 22px;
+      margin: 0;
+    }
+
+    .card-head span.count-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--ink-soft);
+    }
+
+    .card-body {
+      padding: 12px 18px 18px;
+    }
+
+    /* ===== Dish rows ===== */
+    .dish-row {
+      display: grid;
+      grid-template-columns: 1fr 78px 62px 30px;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .dish-row:last-of-type {
+      border-bottom: none;
+    }
+
+    .dish-row input[type=text] {
+      border: none;
+      background: transparent;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--ink);
+      padding: 4px 2px;
+      border-radius: 6px;
+    }
+
+    .dish-row input[type=text]:focus {
+      background: var(--paper-dark);
+      outline: none;
+    }
+
+    .price-wrap,
+    .count-wrap {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .price-wrap span,
+    .count-wrap span {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--ink-soft);
+    }
+
+    input[type=number] {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 6px;
+      padding: 5px 6px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    input[type=number]:focus {
+      outline: 2px solid var(--turmeric);
+      border-color: var(--turmeric);
+    }
+
+    .dish-meta {
+      font-size: 11px;
+      color: var(--ink-soft);
+      font-family: 'IBM Plex Mono', monospace;
+      padding-top: 2px;
+    }
+
+    .dish-meta.ok {
+      color: var(--mint-dark);
+    }
+
+    .dish-meta.over {
+      color: var(--chili-dark);
+    }
+
+    .icon-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--chili);
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-btn:hover {
+      background: var(--chili);
+      color: #fff;
+      border-color: var(--chili);
+    }
+
+    .add-btn {
+      margin-top: 12px;
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 9px;
+      border: 1.5px dashed var(--ink-soft);
+      background: transparent;
+      color: var(--ink-soft);
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .add-btn:hover {
+      border-color: var(--mint-dark);
+      color: var(--mint-dark);
+      background: rgba(76, 122, 93, 0.06);
+    }
+
+    /* ===== People ===== */
+    .person {
+      border: 1.5px solid var(--line);
+      border-radius: 12px;
+      margin-bottom: 14px;
+      background: #fff;
+    }
+
+    .person-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--paper-dark);
+      border-bottom: 1.5px dashed var(--line);
+      border-radius: 12px 12px 0 0;
+    }
+
+    .person-head input[type=text] {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-weight: 700;
+      font-size: 16px;
+      font-family: 'Kalam', cursive;
+      color: var(--ink);
+      padding: 3px 4px;
+      border-radius: 6px;
+    }
+
+    .person-head input[type=text]:focus {
+      background: #fff;
+      outline: none;
+    }
+
+    .person-total {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+      color: var(--mint-dark);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .person-body {
+      padding: 8px 12px 12px;
+    }
+
+    .entry-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto 30px;
+      gap: 6px;
+      align-items: center;
+      padding: 6px 0;
+    }
+
+    .entry-row select {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 5px 6px;
+      font-size: 13px;
+      background: #fff;
+      color: var(--ink);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .frac-wrap {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .frac-wrap input {
+      width: 38px;
+      text-align: center;
+      padding: 5px 2px;
+    }
+
+    .frac-wrap span {
+      color: var(--ink-soft);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .entry-cost {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      min-width: 54px;
+      text-align: right;
+    }
+
+    .quick-fracs {
+      display: flex;
+      gap: 4px;
+      margin: 2px 0 8px;
+      flex-wrap: wrap;
+    }
+
+    .quick-fracs button {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      padding: 3px 7px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink-soft);
+      cursor: pointer;
+    }
+
+    .quick-fracs button:hover {
+      border-color: var(--turmeric);
+      color: var(--chili-dark);
+    }
+
+    .empty-hint {
+      font-size: 12px;
+      color: var(--ink-soft);
+      padding: 6px 2px 8px;
+      font-style: italic;
+    }
+
+    /* ===== Receipt / Bill ===== */
+    .receipt {
+      margin-top: 28px;
+      background: #fff;
+      border: 1.5px solid var(--line);
+      border-radius: 4px;
+      position: relative;
+      box-shadow: 0 10px 26px var(--shadow);
+    }
+
+    .receipt::before,
+    .receipt::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 12px;
+      background:
+        linear-gradient(135deg, var(--paper) 25%, transparent 25%) 0 0/14px 14px,
+        linear-gradient(-135deg, var(--paper) 25%, transparent 25%) 0 0/14px 14px;
+      background-color: transparent;
+    }
+
+    .receipt::before {
+      top: -11px;
+      transform: rotate(180deg);
+    }
+
+    .receipt::after {
+      bottom: -11px;
+    }
+
+    .receipt-inner {
+      padding: 26px 26px 22px;
+    }
+
+    .receipt h2 {
+      font-family: 'Kalam', cursive;
+      text-align: center;
+      font-size: 24px;
+      margin: 0 0 4px;
+    }
+
+    .receipt .sub {
+      text-align: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-soft);
+      margin-bottom: 14px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .receipt-line {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+      padding: 5px 0;
+    }
+
+    .receipt-line.dim {
+      color: var(--ink-soft);
+      font-size: 12.5px;
+    }
+
+    .receipt hr {
+      border: none;
+      border-top: 1px dashed var(--line);
+      margin: 10px 0;
+    }
+
+    .receipt-line.grand {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--mint-dark);
+      border-top: 2px solid var(--ink);
+      padding-top: 10px;
+      margin-top: 6px;
+    }
+
+    .flag {
+      margin-top: 12px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-family: 'IBM Plex Mono', monospace;
+      background: rgba(226, 163, 61, 0.16);
+      color: #7A5410;
+      border: 1px solid rgba(226, 163, 61, 0.4);
+    }
+
+    .flag.balanced {
+      background: rgba(76, 122, 93, 0.13);
+      color: var(--mint-dark);
+      border-color: rgba(76, 122, 93, 0.35);
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 12px;
+      color: var(--ink-soft);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="stall">
+    <div class="stall-inner">
+      <div>
+        <span class="stamp">★ GANDE LONDE ★</span>
+        <h1>Expense Divider</h1>
+        <p class="tag">Split the bill, not the friendship.</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="grid">
+      <!-- MENU CARD -->
+      <section class="card" id="menuCard">
+        <div class="card-head">
+          <h2>🍛 The Menu</h2>
+          <span class="count-badge" id="dishCountBadge"></span>
+        </div>
+        <div class="card-body">
+          <div id="dishList"></div>
+          <button class="add-btn" onclick="addDish()">+ Add a dish</button>
+        </div>
+      </section>
+
+      <!-- PEOPLE CARD -->
+      <section class="card" id="peopleCard">
+        <div class="card-head">
+          <h2>🧑‍🤝‍🧑 The Squad</h2>
+          <span class="count-badge" id="peopleCountBadge"></span>
+        </div>
+        <div class="card-body">
+          <div id="peopleList"></div>
+          <button class="add-btn" onclick="addPerson()">+ Add a person</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- RECEIPT -->
+    <div class="receipt">
+      <div class="receipt-inner">
+        <h2>The Bill</h2>
+        <div class="sub">Gande Londe · Final Tally</div>
+        <div id="receiptPeople"></div>
+        <hr>
+        <div class="receipt-line dim" id="menuTotalLine"></div>
+        <div class="receipt-line dim" id="assignedTotalLine"></div>
+        <div class="receipt-line grand" id="grandTotalLine"></div>
+        <div id="reconFlag"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>made for Gande Londe · Made by Harsh Patel · &copy; 2026 Harsh Patel. All Rights Reserved. · edit anything, it recalculates live</footer>
+
+  <script>
+    let uidCounter = 1;
+    const uid = () => 'id' + (uidCounter++) + '_' + Math.random().toString(36).slice(2, 7);
+
+    let state = {
+      dishes: [
+        { id: uid(), name: 'Pav Bhaji', price: 120, count: 0 },
+        { id: uid(), name: 'Pulav', price: 130, count: 0 },
+        { id: uid(), name: 'Soup', price: 100, count: 0 },
+        { id: uid(), name: 'Manchurian', price: 110, count: 0 },
+        { id: uid(), name: 'Bhel', price: 80, count: 0 },
+        { id: uid(), name: 'Noodles', price: 100, count: 0 },
+        { id: uid(), name: 'Sev Tari', price: 90, count: 0 },
+        { id: uid(), name: 'Sev Usal', price: 90, count: 0 },
+        { id: uid(), name: 'Idli', price: 70, count: 0 },
+        { id: uid(), name: 'Bhajiya', price: 80, count: 0 },
+        { id: uid(), name: 'Gathiya', price: 80, count: 0 },
+        { id: uid(), name: 'Khaman', price: 60, count: 0 },
+        { id: uid(), name: 'Ghughra', price: 70, count: 0 },
+        { id: uid(), name: 'Dahivada', price: 80, count: 0 },
+        { id: uid(), name: 'Fafda', price: 100, count: 0 }
+      ],
+      people: ['Harsh', 'Prince', 'Jenish', 'Apurv', 'Faran', 'Mukund', 'Naitik', 'Meetyo', 'Jeinil', 'Gaurav']
+        .map(name => ({ id: uid(), name })),
+      entries: [] // { id, personId, dishId, num, denom }
+    };
+
+    function fmt(n) {
+      if (!isFinite(n)) return '0';
+      return (Math.round(n * 100) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    }
+
+    function unitPrice(dish) {
+      return Number(dish.price) || 0;
+    }
+
+    function entryCost(entry) {
+      const dish = state.dishes.find(d => d.id === entry.dishId);
+      if (!dish) return 0;
+      const denom = Number(entry.denom) || 1;
+      const num = Number(entry.num) || 0;
+      return unitPrice(dish) * (num / denom);
+    }
+
+    function dishAssignedUnits(dishId) {
+      return state.entries.filter(e => e.dishId === dishId)
+        .reduce((sum, e) => sum + (Number(e.num) || 0) / (Number(e.denom) || 1), 0);
+    }
+
+    // ---------- Dishes ----------
+    function addDish() {
+      state.dishes.push({ id: uid(), name: 'New Dish', price: 0, count: 0 });
+      render();
+    }
+    function removeDish(id) {
+      state.dishes = state.dishes.filter(d => d.id !== id);
+      state.entries = state.entries.filter(e => e.dishId !== id);
+      render();
+    }
+    function updateDish(id, field, value) {
+      const d = state.dishes.find(d => d.id === id);
+      if (!d) return;
+      d[field] = field === 'name' ? value : value;
+      render();
+    }
+
+    // ---------- People ----------
+    function addPerson() {
+      state.people.push({ id: uid(), name: 'New Person' });
+      render();
+    }
+    function removePerson(id) {
+      state.people = state.people.filter(p => p.id !== id);
+      state.entries = state.entries.filter(e => e.personId !== id);
+      render();
+    }
+    function updatePerson(id, value) {
+      const p = state.people.find(p => p.id === id);
+      if (!p) return;
+      p.name = value;
+      render();
+    }
+
+    // ---------- Entries ----------
+    function addEntry(personId) {
+      if (state.dishes.length === 0) return;
+      state.entries.push({ id: uid(), personId, dishId: state.dishes[0].id, num: 1, denom: 2 });
+      render();
+    }
+    function removeEntry(id) {
+      state.entries = state.entries.filter(e => e.id !== id);
+      render();
+    }
+    function updateEntry(id, field, value) {
+      const e = state.entries.find(e => e.id === id);
+      if (!e) return;
+      e[field] = value;
+      render();
+    }
+    function setFrac(id, num, denom) {
+      const e = state.entries.find(e => e.id === id);
+      if (!e) return;
+      e.num = num; e.denom = denom;
+      render();
+    }
+
+    // ---------- Render ----------
+    function render() {
+      const active = document.activeElement;
+      const activeId = active && active.id;
+      const selStart = (active && typeof active.selectionStart === 'number') ? active.selectionStart : null;
+      const selEnd = (active && typeof active.selectionEnd === 'number') ? active.selectionEnd : null;
+
+      renderDishes();
+      renderPeople();
+      renderReceipt();
+
+      if (activeId) {
+        const el = document.getElementById(activeId);
+        if (el) {
+          el.focus();
+          if (selStart != null && el.setSelectionRange) {
+            try { el.setSelectionRange(selStart, selEnd); } catch (e) { }
+          }
+        }
+      }
+    }
+
+    function renderDishes() {
+      document.getElementById('dishCountBadge').textContent = state.dishes.length + ' items';
+      const wrap = document.getElementById('dishList');
+      wrap.innerHTML = state.dishes.map(d => {
+        const assigned = dishAssignedUnits(d.id);
+        const count = Number(d.count) || 0;
+        const remaining = count - assigned;
+        let metaClass = '', metaText = '';
+        if (count === 0 && assigned === 0) {
+          metaText = '0 ordered';
+        } else if (Math.abs(remaining) < 0.001) {
+          metaClass = 'ok';
+          metaText = `✓ fully divided (${fmt(assigned)}/${fmt(count)})`;
+        } else if (remaining > 0) {
+          metaText = `${fmt(remaining)} of ${fmt(count)} unclaimed`;
+        } else {
+          metaClass = 'over';
+          metaText = `⚠ over-claimed by ${fmt(-remaining)}`;
+        }
+        return `
+    <div class="dish-row">
+      <input type="text" id="dish-name-${d.id}" value="${escapeHtml(d.name)}"
+        oninput="updateDish('${d.id}','name',this.value)">
+      <div class="price-wrap">
+        <span>₹</span>
+        <input type="number" id="dish-price-${d.id}" min="0" value="${d.price}"
+          oninput="updateDish('${d.id}','price',this.value)">
+      </div>
+      <div class="count-wrap">
+        <span>×</span>
+        <input type="number" id="dish-count-${d.id}" min="0" value="${d.count}"
+          oninput="updateDish('${d.id}','count',this.value)">
+      </div>
+      <button class="icon-btn" onclick="removeDish('${d.id}')" title="Remove dish">✕</button>
+      <div class="dish-meta ${metaClass}" style="grid-column:1/3;">₹${fmt(unitPrice(d))} per portion</div>
+      <div class="dish-meta ${metaClass}" style="grid-column:3/5; text-align:right;">${metaText}</div>
+    </div>`;
+      }).join('') || '<div class="empty-hint">No dishes yet — add one above.</div>';
+    }
+
+    function renderPeople() {
+      document.getElementById('peopleCountBadge').textContent = state.people.length + ' people';
+      const wrap = document.getElementById('peopleList');
+      const dishOptions = (selectedId) => state.dishes.map(d =>
+        `<option value="${d.id}" ${d.id === selectedId ? 'selected' : ''}>${escapeHtml(d.name)}</option>`
+      ).join('');
+
+      wrap.innerHTML = state.people.map(p => {
+        const myEntries = state.entries.filter(e => e.personId === p.id);
+        const total = myEntries.reduce((s, e) => s + entryCost(e), 0);
+        const rows = myEntries.map(e => `
+      <div class="entry-row">
+        <select onchange="updateEntry('${e.id}','dishId',this.value)">
+          ${dishOptions(e.dishId)}
+        </select>
+        <div class="frac-wrap">
+          <input type="number" id="entry-num-${e.id}" min="0" value="${e.num}"
+            oninput="updateEntry('${e.id}','num',this.value)">
+          <span>/</span>
+          <input type="number" id="entry-denom-${e.id}" min="1" value="${e.denom}"
+            oninput="updateEntry('${e.id}','denom',this.value)">
+        </div>
+        <div class="entry-cost">₹${fmt(entryCost(e))}</div>
+        <span></span>
+        <button class="icon-btn" onclick="removeEntry('${e.id}')" title="Remove item">✕</button>
+      </div>`).join('');
+
+        return `
+    <div class="person">
+      <div class="person-head">
+        <input type="text" id="person-name-${p.id}" value="${escapeHtml(p.name)}"
+          oninput="updatePerson('${p.id}', this.value)">
+        <span class="person-total">₹${fmt(total)}</span>
+        <button class="icon-btn" onclick="removePerson('${p.id}')" title="Remove person">✕</button>
+      </div>
+      <div class="person-body">
+        ${rows || '<div class="empty-hint">No dishes claimed yet.</div>'}
+        <button class="add-btn" onclick="addEntry('${p.id}')">+ Add item for ${escapeHtml(p.name)}</button>
+      </div>
+    </div>`;
+      }).join('') || '<div class="empty-hint">No people yet — add one above.</div>';
+    }
+
+    function renderReceipt() {
+      const menuTotal = state.dishes.reduce((s, d) => s + (Number(d.price) || 0) * (Number(d.count) || 0), 0);
+      const assignedTotal = state.entries.reduce((s, e) => s + entryCost(e), 0);
+
+      const peopleRows = state.people.map(p => {
+        const total = state.entries.filter(e => e.personId === p.id).reduce((s, e) => s + entryCost(e), 0);
+        return `<div class="receipt-line"><span>${escapeHtml(p.name)}</span><span class="mono">₹${fmt(total)}</span></div>`;
+      }).join('');
+      document.getElementById('receiptPeople').innerHTML = peopleRows || '<div class="empty-hint">Add people and claim dishes to see totals.</div>';
+
+      document.getElementById('menuTotalLine').innerHTML = `<span>Menu total</span><span>₹${fmt(menuTotal)}</span>`;
+      document.getElementById('assignedTotalLine').innerHTML = `<span>Assigned to squad</span><span>₹${fmt(assignedTotal)}</span>`;
+      document.getElementById('grandTotalLine').innerHTML = `<span>Grand Total</span><span>₹${fmt(assignedTotal)}</span>`;
+
+      const diff = menuTotal - assignedTotal;
+      const flag = document.getElementById('reconFlag');
+      if (Math.abs(diff) < 0.01) {
+        flag.className = 'flag balanced';
+        flag.textContent = '✓ Every rupee is accounted for.';
+      } else if (diff > 0) {
+        flag.className = 'flag';
+        flag.textContent = `⚠ ₹${fmt(diff)} of the menu hasn't been claimed by anyone yet.`;
+      } else {
+        flag.className = 'flag';
+        flag.textContent = `⚠ ₹${fmt(-diff)} more has been claimed than the menu costs — check portions.`;
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    render();
+  </script>
+</body>
+
+</html>

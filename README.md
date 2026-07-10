@@ -28,8 +28,13 @@ An interactive, high-fidelity scorecard for card game matches.
   - **Sir:** Record the trump card or sir details.
 * **Persistent Cache:** Synchronizes state automatically with `localStorage` to survive refreshes.
 
-### 2. Coming Soon Slot (`/Project Slot II`)
-Future templates and game cards will occupy this area of the suite.
+### 2. Expense Divider (`/Expense Divider`)
+An interactive, responsive food bill splitter made for the Gande Londe squad.
+
+* **Menu Setup:** Set prices and specify quantities ordered. All dishes default to a quantity of 0.
+* **Non-proportional Portion Splitting:** Splitting a portion (e.g. 1/2 of Pav Bhaji) calculates the price directly from the item's unit price (e.g., 60 for a 120 dish) independent of how many total quantities are ordered.
+* **Squad Tracking:** Track consumption per squad member with dynamic itemized breakdowns.
+* **Reconciliation Checklist:** Live status tracking checks if the total cost matches the assigned costs to ensure every rupee is accounted for.
 
 ---
 
