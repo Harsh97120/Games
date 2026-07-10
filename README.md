@@ -1,6 +1,6 @@
 # C - 212 Arcade Suite
 
-### 🚀 Live Website: [https://Harsh97120.github.io/Games/](https://Harsh97120.github.io/Games/)
+### 🚀 Live Website: <a href="https://Harsh97120.github.io/Games/" target="_blank" rel="noopener noreferrer">https://Harsh97120.github.io/Games/</a>
 
 Welcome to the **C - 212 Arcade Suite**, a premium collection of responsive card games, match scorekeepers, and web tools. 
 
