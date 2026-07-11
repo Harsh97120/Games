@@ -430,7 +430,6 @@
 
     /* ===== Receipt / Bill ===== */
     .receipt {
-      margin-top: 28px;
       background: #fff;
       border: 1.5px solid var(--line);
       border-radius: 4px;
@@ -524,6 +523,67 @@
       background: rgba(76, 122, 93, 0.13);
       color: var(--mint-dark);
       border-color: rgba(76, 122, 93, 0.35);
+    }
+
+    /* ===== Bottom Section Layout ===== */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 22px;
+      align-items: start;
+      margin-top: 28px;
+    }
+
+    .adjustments-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .adjustments-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .adjustments-field label {
+      font-family: 'Inter', sans-serif;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 2px;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .input-group span {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+      color: var(--ink-soft);
+    }
+
+    .adjustments-info {
+      font-size: 11px;
+      color: var(--ink-soft);
+      font-family: 'IBM Plex Mono', monospace;
+      padding-top: 4px;
+    }
+
+    @media (max-width: 860px) {
+      .bottom-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .adjustments-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
     }
 
     footer {
@@ -672,7 +732,7 @@
         <h1>Expense Divider</h1>
         <p class="tag">Split the bill, not the friendship.</p>
       </div>
-      <button class="reset-btn" onclick="confirmReset()" title="Reset all data to default">🔄 Reset Arena</button>
+      <button class="reset-btn" onclick="confirmReset()" title="Reset all data to default">🔄 Clear Scorecard</button>
     </div>
   </header>
 
@@ -703,17 +763,52 @@
       </section>
     </div>
 
-    <!-- RECEIPT -->
-    <div class="receipt">
-      <div class="receipt-inner">
-        <h2>The Bill</h2>
-        <div class="sub">Gande Londe · Final Tally</div>
-        <div id="receiptPeople"></div>
-        <hr>
-        <div class="receipt-line dim" id="menuTotalLine"></div>
-        <div class="receipt-line dim" id="assignedTotalLine"></div>
-        <div class="receipt-line grand" id="grandTotalLine"></div>
-        <div id="reconFlag"></div>
+    <!-- BOTTOM SECTION: ADJUSTMENTS & RECEIPT -->
+    <div class="bottom-grid">
+      <!-- ADJUSTMENTS CARD -->
+      <section class="card" id="adjustmentsCard">
+        <div class="card-head">
+          <h2>⚡ Common Adjustments</h2>
+        </div>
+        <div class="card-body">
+          <div class="adjustments-row">
+            <div class="adjustments-field">
+              <label for="billDiscount">Total Discount</label>
+              <div class="input-group">
+                <span>₹</span>
+                <input type="number" id="billDiscount" min="0" placeholder="0" oninput="updateDiscountVal(this.value)"
+                  onblur="render()">
+              </div>
+              <div class="adjustments-info" id="discountPerPersonHint">Each person saves: ₹0</div>
+            </div>
+
+            <div class="adjustments-field">
+              <label for="billExtraCharges">Extra Charges (Tax, Delivery, etc.)</label>
+              <div class="input-group">
+                <span>₹</span>
+                <input type="number" id="billExtraCharges" min="0" placeholder="0"
+                  oninput="updateExtraChargesVal(this.value)" onblur="render()">
+              </div>
+              <div class="adjustments-info" id="extraPerPersonHint">Each person pays: +₹0</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RECEIPT -->
+      <div class="receipt">
+        <div class="receipt-inner">
+          <h2>The Bill</h2>
+          <div class="sub">Gande Londe · Final Tally</div>
+          <div id="receiptPeople"></div>
+          <hr>
+          <div class="receipt-line dim" id="menuTotalLine"></div>
+          <div class="receipt-line dim" id="assignedTotalLine"></div>
+          <div class="receipt-line dim" id="commonDiscountLine"></div>
+          <div class="receipt-line dim" id="commonExtraChargesLine"></div>
+          <div class="receipt-line grand" id="grandTotalLine"></div>
+          <div id="reconFlag"></div>
+        </div>
       </div>
     </div>
   </main>
@@ -749,9 +844,11 @@
           { id: uid(), name: 'TetraPack', price: 15, count: 0 },
           { id: uid(), name: '30 Vadi chass', price: 30, count: 0 }
         ],
-        people: ['Harsh', 'Prince', 'Jenish', 'Apurv', 'Faran', 'Mukund', 'Naitik', 'Meetyo', 'Jeinil', 'Gaurav']
+        people: ['Harsh', 'Prince', 'Jenish', 'Apurv', 'Faran', 'Mukund', 'Naitik', 'Meetyo', 'Jeinil', 'Gaurav', 'Hardik']
           .map(name => ({ id: uid(), name })),
-        entries: [] // { id, personId, dishId, num, denom }
+        entries: [], // { id, personId, dishId, num, denom }
+        discount: 0,
+        extraCharges: 0
       };
     }
 
@@ -768,6 +865,9 @@
             state.dishes.push(defaultDish);
           }
         });
+        // Ensure discount and extraCharges are initialized if missing in cached state
+        if (state.discount === undefined) state.discount = 0;
+        if (state.extraCharges === undefined) state.extraCharges = 0;
       } else {
         state = getInitialState();
       }
@@ -785,7 +885,7 @@
     }
 
     function confirmReset() {
-      if (confirm("Are you sure you want to reset all dishes, squad, and claims to default?")) {
+      if (confirm("Are you sure you want to reset all dishes, squad, claims, and common adjustments?")) {
         state = getInitialState();
         saveState();
         render();
@@ -871,6 +971,16 @@
       updateCalculations();
     }
 
+    function updateDiscountVal(val) {
+      state.discount = Number(val) || 0;
+      updateCalculations();
+    }
+
+    function updateExtraChargesVal(val) {
+      state.extraCharges = Number(val) || 0;
+      updateCalculations();
+    }
+
     // ---------- Calculations & Caching Updates ----------
     function updateCalculations() {
       saveState();
@@ -881,13 +991,41 @@
         if (el) el.textContent = `₹${fmt(entryCost(e))}`;
       });
 
+      const numPlayers = state.people.length;
+      const shareExtra = numPlayers > 0 ? (Number(state.extraCharges) || 0) / numPlayers : 0;
+      const shareDiscount = numPlayers > 0 ? (Number(state.discount) || 0) / numPlayers : 0;
+      const hasAdjustments = state.discount > 0 || state.extraCharges > 0;
+
       // Update all person totals in the DOM
       state.people.forEach(p => {
         const myEntries = state.entries.filter(ent => ent.personId === p.id);
-        const total = myEntries.reduce((s, ent) => s + entryCost(ent), 0);
+        const individualTotal = myEntries.reduce((s, ent) => s + entryCost(ent), 0);
+        const finalAmount = individualTotal + shareExtra - shareDiscount;
         const el = document.getElementById(`person-total-val-${p.id}`);
-        if (el) el.textContent = `₹${fmt(total)}`;
+        if (el) el.textContent = `₹${fmt(finalAmount)}`;
+
+        // Update breakdown fields inside the card
+        const elBase = document.getElementById(`person-base-val-${p.id}`);
+        if (elBase) elBase.textContent = `Base: ₹${fmt(individualTotal)}`;
+        const elShareExtra = document.getElementById(`person-share-extra-val-${p.id}`);
+        if (elShareExtra) elShareExtra.textContent = `Extra: +₹${fmt(shareExtra)}`;
+        const elShareDiscount = document.getElementById(`person-share-discount-val-${p.id}`);
+        if (elShareDiscount) elShareDiscount.textContent = `Discount: -₹${fmt(shareDiscount)}`;
+
+        // Adjust visibility of breakdown block
+        const elAdjustments = document.getElementById(`person-adjustments-${p.id}`);
+        if (elAdjustments) elAdjustments.style.display = hasAdjustments ? 'flex' : 'none';
       });
+
+      // Update input hints in the adjustments card
+      const discountHint = document.getElementById('discountPerPersonHint');
+      if (discountHint) {
+        discountHint.textContent = `Each person saves: ₹${fmt(shareDiscount)}`;
+      }
+      const extraHint = document.getElementById('extraPerPersonHint');
+      if (extraHint) {
+        extraHint.textContent = `Each person pays: +₹${fmt(shareExtra)}`;
+      }
 
       // Update all dish metadata in the DOM
       state.dishes.forEach(d => {
@@ -934,6 +1072,15 @@
       renderDishes();
       renderPeople();
       renderReceipt();
+
+      const discEl = document.getElementById('billDiscount');
+      if (discEl && activeId !== 'billDiscount') {
+        discEl.value = state.discount || '';
+      }
+      const extraEl = document.getElementById('billExtraCharges');
+      if (extraEl && activeId !== 'billExtraCharges') {
+        extraEl.value = state.extraCharges || '';
+      }
 
       if (activeId) {
         const el = document.getElementById(activeId);
@@ -993,9 +1140,15 @@
         `<option value="${d.id}" ${d.id === selectedId ? 'selected' : ''}>${escapeHtml(d.name)}</option>`
       ).join('');
 
+      const numPlayers = state.people.length;
+      const shareExtra = numPlayers > 0 ? (Number(state.extraCharges) || 0) / numPlayers : 0;
+      const shareDiscount = numPlayers > 0 ? (Number(state.discount) || 0) / numPlayers : 0;
+      const hasAdjustments = state.discount > 0 || state.extraCharges > 0;
+
       wrap.innerHTML = state.people.map(p => {
         const myEntries = state.entries.filter(e => e.personId === p.id);
-        const total = myEntries.reduce((s, e) => s + entryCost(e), 0);
+        const individualTotal = myEntries.reduce((s, e) => s + entryCost(e), 0);
+        const finalAmount = individualTotal + shareExtra - shareDiscount;
         const rows = myEntries.map(e => `
       <div class="entry-row">
         <select onchange="updateEntry('${e.id}','dishId',this.value)">
@@ -1018,12 +1171,17 @@
       <div class="person-head">
         <input type="text" id="person-name-${p.id}" value="${escapeHtml(p.name)}"
           oninput="updatePerson('${p.id}', this.value)" onblur="render()">
-        <span id="person-total-val-${p.id}" class="person-total">₹${fmt(total)}</span>
+        <span id="person-total-val-${p.id}" class="person-total">₹${fmt(finalAmount)}</span>
         <button class="icon-btn" onclick="removePerson('${p.id}')" title="Remove person">✕</button>
       </div>
       <div class="person-body">
         ${rows || '<div class="empty-hint">No dishes claimed yet.</div>'}
         <button class="add-btn" onclick="addEntry('${p.id}')">+ Add item for ${escapeHtml(p.name)}</button>
+        <div class="person-adjustments-hint" id="person-adjustments-${p.id}" style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--line); display: ${hasAdjustments ? 'flex' : 'none'}; justify-content: space-between;">
+          <span id="person-base-val-${p.id}">Base: ₹${fmt(individualTotal)}</span>
+          <span id="person-share-extra-val-${p.id}">Extra: +₹${fmt(shareExtra)}</span>
+          <span id="person-share-discount-val-${p.id}">Discount: -₹${fmt(shareDiscount)}</span>
+        </div>
       </div>
     </div>`;
       }).join('') || '<div class="empty-hint">No people yet — add one above.</div>';
@@ -1033,15 +1191,56 @@
       const menuTotal = state.dishes.reduce((s, d) => s + (Number(d.price) || 0) * (Number(d.count) || 0), 0);
       const assignedTotal = state.entries.reduce((s, e) => s + entryCost(e), 0);
 
+      const numPlayers = state.people.length;
+      const shareExtra = numPlayers > 0 ? (Number(state.extraCharges) || 0) / numPlayers : 0;
+      const shareDiscount = numPlayers > 0 ? (Number(state.discount) || 0) / numPlayers : 0;
+      const grandTotal = assignedTotal + (Number(state.extraCharges) || 0) - (Number(state.discount) || 0);
+
       const peopleRows = state.people.map(p => {
-        const total = state.entries.filter(e => e.personId === p.id).reduce((s, e) => s + entryCost(e), 0);
-        return `<div class="receipt-line"><span>${escapeHtml(p.name)}</span><span class="mono">₹${fmt(total)}</span></div>`;
+        const individualTotal = state.entries.filter(e => e.personId === p.id).reduce((s, e) => s + entryCost(e), 0);
+        const finalAmount = individualTotal + shareExtra - shareDiscount;
+        let breakdownStr = '';
+        if (state.discount > 0 || state.extraCharges > 0) {
+          breakdownStr = `<div style="font-size: 11px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; margin-top: -2px; margin-bottom: 6px; text-align: right;">
+            (₹${fmt(individualTotal)} base + ₹${fmt(shareExtra)} extra - ₹${fmt(shareDiscount)} discount)
+          </div>`;
+        }
+        return `
+          <div>
+            <div class="receipt-line">
+              <span>${escapeHtml(p.name)}</span>
+              <span class="mono">₹${fmt(finalAmount)}</span>
+            </div>
+            ${breakdownStr}
+          </div>
+        `;
       }).join('');
       document.getElementById('receiptPeople').innerHTML = peopleRows || '<div class="empty-hint">Add people and claim dishes to see totals.</div>';
 
       document.getElementById('menuTotalLine').innerHTML = `<span>Menu total</span><span>₹${fmt(menuTotal)}</span>`;
       document.getElementById('assignedTotalLine').innerHTML = `<span>Assigned to squad</span><span>₹${fmt(assignedTotal)}</span>`;
-      document.getElementById('grandTotalLine').innerHTML = `<span>Grand Total</span><span>₹${fmt(assignedTotal)}</span>`;
+
+      const discountLine = document.getElementById('commonDiscountLine');
+      if (discountLine) {
+        if (state.discount > 0) {
+          discountLine.style.display = 'flex';
+          discountLine.innerHTML = `<span>Common Discount</span><span>-₹${fmt(state.discount)}</span>`;
+        } else {
+          discountLine.style.display = 'none';
+        }
+      }
+
+      const extraLine = document.getElementById('commonExtraChargesLine');
+      if (extraLine) {
+        if (state.extraCharges > 0) {
+          extraLine.style.display = 'flex';
+          extraLine.innerHTML = `<span>Extra Charges</span><span>+₹${fmt(state.extraCharges)}</span>`;
+        } else {
+          extraLine.style.display = 'none';
+        }
+      }
+
+      document.getElementById('grandTotalLine').innerHTML = `<span>Grand Total</span><span>₹${fmt(grandTotal)}</span>`;
 
       const diff = menuTotal - assignedTotal;
       const flag = document.getElementById('reconFlag');
