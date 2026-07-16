@@ -487,6 +487,95 @@
       display: none;
     }
 
+    .payment-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--line);
+      flex-wrap: wrap;
+    }
+
+    .payment-row > label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      white-space: nowrap;
+    }
+
+    .payment-options {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pay-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+
+    .pay-option input {
+      accent-color: var(--mint-dark);
+      cursor: pointer;
+    }
+
+    .pay-option.cash.active {
+      border-color: var(--turmeric);
+      background: rgba(226, 163, 61, 0.14);
+      color: #7A5410;
+    }
+
+    .pay-option.gpay.active {
+      border-color: #4285F4;
+      background: rgba(66, 133, 244, 0.12);
+      color: #1a56b0;
+    }
+
+    .pay-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 999px;
+      margin-left: 6px;
+    }
+
+    .pay-badge.cash {
+      background: rgba(226, 163, 61, 0.2);
+      color: #7A5410;
+    }
+
+    .pay-badge.gpay {
+      background: rgba(66, 133, 244, 0.15);
+      color: #1a56b0;
+    }
+
+    .receipt-line.payment-split {
+      font-weight: 600;
+    }
+
+    .receipt-line.payment-split.cash {
+      color: #7A5410;
+    }
+
+    .receipt-line.payment-split.gpay {
+      color: #1a56b0;
+    }
+
     /* ===== Receipt / Bill ===== */
     .receipt {
       background: #fff;
@@ -865,6 +954,9 @@
           <div class="receipt-line dim" id="assignedTotalLine"></div>
           <div class="receipt-line dim" id="commonDiscountLine"></div>
           <div class="receipt-line dim" id="commonExtraChargesLine"></div>
+          <div class="receipt-line payment-split cash" id="cashTotalLine" style="display:none"></div>
+          <div class="receipt-line payment-split gpay" id="gpayTotalLine" style="display:none"></div>
+          <div class="receipt-line dim" id="unassignedPaymentLine" style="display:none"></div>
           <div class="receipt-line grand" id="grandTotalLine"></div>
           <div id="reconFlag"></div>
         </div>
@@ -904,7 +996,7 @@
           { id: uid(), name: '30 Vadi chass', price: 30, count: 0 }
         ],
         people: ['Harsh', 'Prince', 'Jenish', 'Apurv', 'Faran', 'Mukund', 'Naitik', 'Meetyo', 'Jeinil', 'Gaurav', 'Hardik']
-          .map(name => ({ id: uid(), name, sameAs: null })),
+          .map(name => ({ id: uid(), name, sameAs: null, paymentVia: null })),
         entries: [], // { id, personId, dishId, num, denom }
         discount: 0,
         extraCharges: 0
@@ -929,6 +1021,7 @@
         if (state.extraCharges === undefined) state.extraCharges = 0;
         state.people.forEach(p => {
           if (p.sameAs === undefined) p.sameAs = null;
+          if (p.paymentVia === undefined) p.paymentVia = null;
         });
       } else {
         state = getInitialState();
@@ -993,6 +1086,20 @@
       return personEntries(personId).reduce((s, e) => s + entryCost(e), 0);
     }
 
+    function personShareExtra() {
+      const numPlayers = state.people.length;
+      return numPlayers > 0 ? (Number(state.extraCharges) || 0) / numPlayers : 0;
+    }
+
+    function personShareDiscount() {
+      const numPlayers = state.people.length;
+      return numPlayers > 0 ? (Number(state.discount) || 0) / numPlayers : 0;
+    }
+
+    function personFinalAmount(personId) {
+      return personIndividualTotal(personId) + personShareExtra() - personShareDiscount();
+    }
+
     function dishAssignedUnits(dishId) {
       return state.entries.filter(e => e.dishId === dishId)
         .reduce((sum, e) => sum + (Number(e.num) || 0) / (Number(e.denom) || 1), 0);
@@ -1017,7 +1124,7 @@
 
     // ---------- People ----------
     function addPerson() {
-      state.people.push({ id: uid(), name: 'New Person', sameAs: null });
+      state.people.push({ id: uid(), name: 'New Person', sameAs: null, paymentVia: null });
       render();
     }
     function removePerson(id) {
@@ -1046,6 +1153,12 @@
       if (effectivePersonId(targetId) === personId) return;
       person.sameAs = targetId;
       state.entries = state.entries.filter(e => e.personId !== personId);
+      render();
+    }
+    function updatePaymentVia(personId, method) {
+      const person = state.people.find(p => p.id === personId);
+      if (!person) return;
+      person.paymentVia = person.paymentVia === method ? null : method;
       render();
     }
 
@@ -1093,15 +1206,15 @@
       });
 
       const numPlayers = state.people.length;
-      const shareExtra = numPlayers > 0 ? (Number(state.extraCharges) || 0) / numPlayers : 0;
-      const shareDiscount = numPlayers > 0 ? (Number(state.discount) || 0) / numPlayers : 0;
+      const shareExtra = personShareExtra();
+      const shareDiscount = personShareDiscount();
       const hasAdjustments = state.discount > 0 || state.extraCharges > 0;
 
       // Update all person totals in the DOM
       state.people.forEach(p => {
         const myEntries = personEntries(p.id);
         const individualTotal = myEntries.reduce((s, ent) => s + entryCost(ent), 0);
-        const finalAmount = individualTotal + shareExtra - shareDiscount;
+        const finalAmount = personFinalAmount(p.id);
         const el = document.getElementById(`person-total-val-${p.id}`);
         if (el) el.textContent = `₹${fmt(finalAmount)}`;
 
@@ -1242,8 +1355,8 @@
       ).join('');
 
       const numPlayers = state.people.length;
-      const shareExtra = numPlayers > 0 ? (Number(state.extraCharges) || 0) / numPlayers : 0;
-      const shareDiscount = numPlayers > 0 ? (Number(state.discount) || 0) / numPlayers : 0;
+      const shareExtra = personShareExtra();
+      const shareDiscount = personShareDiscount();
       const hasAdjustments = state.discount > 0 || state.extraCharges > 0;
 
       wrap.innerHTML = state.people.map(p => {
@@ -1251,7 +1364,7 @@
         const sourcePerson = linkedTo ? state.people.find(x => x.id === effectivePersonId(p.id)) : null;
         const myEntries = personEntries(p.id);
         const individualTotal = myEntries.reduce((s, e) => s + entryCost(e), 0);
-        const finalAmount = individualTotal + shareExtra - shareDiscount;
+        const finalAmount = personFinalAmount(p.id);
         const sameAsOptions = [
           `<option value="">Own bill</option>`,
           ...state.people
@@ -1322,6 +1435,21 @@
           <span id="person-share-extra-val-${p.id}">Extra: +₹${fmt(shareExtra)}</span>
           <span id="person-share-discount-val-${p.id}">Discount: -₹${fmt(shareDiscount)}</span>
         </div>
+        <div class="payment-row">
+          <label>Pay via</label>
+          <div class="payment-options">
+            <label class="pay-option cash${p.paymentVia === 'cash' ? ' active' : ''}">
+              <input type="checkbox" ${p.paymentVia === 'cash' ? 'checked' : ''}
+                onchange="updatePaymentVia('${p.id}', 'cash')">
+              Cash
+            </label>
+            <label class="pay-option gpay${p.paymentVia === 'gpay' ? ' active' : ''}">
+              <input type="checkbox" ${p.paymentVia === 'gpay' ? 'checked' : ''}
+                onchange="updatePaymentVia('${p.id}', 'gpay')">
+              GPay
+            </label>
+          </div>
+        </div>
       </div>
     </div>`;
       }).join('') || '<div class="empty-hint">No people yet — add one above.</div>';
@@ -1332,14 +1460,14 @@
       const assignedTotal = state.entries.reduce((s, e) => s + entryCost(e), 0);
 
       const numPlayers = state.people.length;
-      const shareExtra = numPlayers > 0 ? (Number(state.extraCharges) || 0) / numPlayers : 0;
-      const shareDiscount = numPlayers > 0 ? (Number(state.discount) || 0) / numPlayers : 0;
+      const shareExtra = personShareExtra();
+      const shareDiscount = personShareDiscount();
       const grandTotal = assignedTotal + (Number(state.extraCharges) || 0) - (Number(state.discount) || 0);
 
       const peopleRows = state.people.map(p => {
         const sourcePerson = p.sameAs ? state.people.find(x => x.id === effectivePersonId(p.id)) : null;
         const individualTotal = personIndividualTotal(p.id);
-        const finalAmount = individualTotal + shareExtra - shareDiscount;
+        const finalAmount = personFinalAmount(p.id);
         let breakdownStr = '';
         if (state.discount > 0 || state.extraCharges > 0) {
           breakdownStr = `<div style="font-size: 11px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; margin-top: -2px; margin-bottom: 6px; text-align: right;">
@@ -1349,10 +1477,15 @@
         const sameAsNote = sourcePerson && sourcePerson.id !== p.id
           ? `<div style="font-size: 11px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; margin-top: -2px; margin-bottom: 6px;">same as ${escapeHtml(sourcePerson.name)}</div>`
           : '';
+        const payBadge = p.paymentVia === 'cash'
+          ? '<span class="pay-badge cash">Cash</span>'
+          : p.paymentVia === 'gpay'
+            ? '<span class="pay-badge gpay">GPay</span>'
+            : '';
         return `
           <div>
             <div class="receipt-line">
-              <span>${escapeHtml(p.name)}</span>
+              <span>${escapeHtml(p.name)}${payBadge}</span>
               <span class="mono">₹${fmt(finalAmount)}</span>
             </div>
             ${sameAsNote}
@@ -1386,6 +1519,46 @@
       }
 
       document.getElementById('grandTotalLine').innerHTML = `<span>Grand Total</span><span>₹${fmt(grandTotal)}</span>`;
+
+      let cashTotal = 0;
+      let gpayTotal = 0;
+      let unassignedTotal = 0;
+      state.people.forEach(p => {
+        const amount = personFinalAmount(p.id);
+        if (p.paymentVia === 'cash') cashTotal += amount;
+        else if (p.paymentVia === 'gpay') gpayTotal += amount;
+        else unassignedTotal += amount;
+      });
+
+      const cashLine = document.getElementById('cashTotalLine');
+      if (cashLine) {
+        if (cashTotal > 0) {
+          cashLine.style.display = 'flex';
+          cashLine.innerHTML = `<span>Cash total</span><span>₹${fmt(cashTotal)}</span>`;
+        } else {
+          cashLine.style.display = 'none';
+        }
+      }
+
+      const gpayLine = document.getElementById('gpayTotalLine');
+      if (gpayLine) {
+        if (gpayTotal > 0) {
+          gpayLine.style.display = 'flex';
+          gpayLine.innerHTML = `<span>GPay total</span><span>₹${fmt(gpayTotal)}</span>`;
+        } else {
+          gpayLine.style.display = 'none';
+        }
+      }
+
+      const unassignedLine = document.getElementById('unassignedPaymentLine');
+      if (unassignedLine) {
+        if (unassignedTotal > 0 && (cashTotal > 0 || gpayTotal > 0)) {
+          unassignedLine.style.display = 'flex';
+          unassignedLine.innerHTML = `<span>Payment not marked</span><span>₹${fmt(unassignedTotal)}</span>`;
+        } else {
+          unassignedLine.style.display = 'none';
+        }
+      }
 
       const diff = menuTotal - assignedTotal;
       const flag = document.getElementById('reconFlag');
