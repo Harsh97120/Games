@@ -428,6 +428,65 @@
       font-style: italic;
     }
 
+    .same-as-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .same-as-row label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      white-space: nowrap;
+    }
+
+    .same-as-row select {
+      flex: 1;
+      min-width: 140px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 13px;
+      background: #fff;
+      color: var(--ink);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .same-as-banner {
+      font-size: 12.5px;
+      color: var(--mint-dark);
+      background: rgba(76, 122, 93, 0.1);
+      border: 1px dashed rgba(76, 122, 93, 0.35);
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .same-as-banner strong {
+      font-family: 'Kalam', cursive;
+      font-size: 14px;
+      color: var(--ink);
+    }
+
+    .person.same-as-linked .person-body > .add-btn {
+      display: none;
+    }
+
+    .entry-row.read-only select,
+    .entry-row.read-only input {
+      pointer-events: none;
+      background: var(--paper-dark);
+      color: var(--ink-soft);
+    }
+
+    .entry-row.read-only .icon-btn {
+      display: none;
+    }
+
     /* ===== Receipt / Bill ===== */
     .receipt {
       background: #fff;
@@ -845,7 +904,7 @@
           { id: uid(), name: '30 Vadi chass', price: 30, count: 0 }
         ],
         people: ['Harsh', 'Prince', 'Jenish', 'Apurv', 'Faran', 'Mukund', 'Naitik', 'Meetyo', 'Jeinil', 'Gaurav', 'Hardik']
-          .map(name => ({ id: uid(), name })),
+          .map(name => ({ id: uid(), name, sameAs: null })),
         entries: [], // { id, personId, dishId, num, denom }
         discount: 0,
         extraCharges: 0
@@ -868,6 +927,9 @@
         // Ensure discount and extraCharges are initialized if missing in cached state
         if (state.discount === undefined) state.discount = 0;
         if (state.extraCharges === undefined) state.extraCharges = 0;
+        state.people.forEach(p => {
+          if (p.sameAs === undefined) p.sameAs = null;
+        });
       } else {
         state = getInitialState();
       }
@@ -909,6 +971,28 @@
       return unitPrice(dish) * (num / denom);
     }
 
+    function resolveSameAs(personId, visited = new Set()) {
+      if (visited.has(personId)) return personId;
+      visited.add(personId);
+      const person = state.people.find(p => p.id === personId);
+      if (!person || !person.sameAs) return personId;
+      const target = state.people.find(p => p.id === person.sameAs);
+      if (!target) return personId;
+      return resolveSameAs(target.id, visited);
+    }
+
+    function effectivePersonId(personId) {
+      return resolveSameAs(personId);
+    }
+
+    function personEntries(personId) {
+      return state.entries.filter(e => e.personId === effectivePersonId(personId));
+    }
+
+    function personIndividualTotal(personId) {
+      return personEntries(personId).reduce((s, e) => s + entryCost(e), 0);
+    }
+
     function dishAssignedUnits(dishId) {
       return state.entries.filter(e => e.dishId === dishId)
         .reduce((sum, e) => sum + (Number(e.num) || 0) / (Number(e.denom) || 1), 0);
@@ -933,12 +1017,15 @@
 
     // ---------- People ----------
     function addPerson() {
-      state.people.push({ id: uid(), name: 'New Person' });
+      state.people.push({ id: uid(), name: 'New Person', sameAs: null });
       render();
     }
     function removePerson(id) {
       state.people = state.people.filter(p => p.id !== id);
       state.entries = state.entries.filter(e => e.personId !== id);
+      state.people.forEach(p => {
+        if (p.sameAs === id) p.sameAs = null;
+      });
       render();
     }
     function updatePerson(id, value) {
@@ -946,6 +1033,20 @@
       if (!p) return;
       p.name = value;
       updateCalculations();
+    }
+    function updateSameAs(personId, targetId) {
+      const person = state.people.find(p => p.id === personId);
+      if (!person) return;
+      if (!targetId) {
+        person.sameAs = null;
+        render();
+        return;
+      }
+      if (targetId === personId) return;
+      if (effectivePersonId(targetId) === personId) return;
+      person.sameAs = targetId;
+      state.entries = state.entries.filter(e => e.personId !== personId);
+      render();
     }
 
     // ---------- Entries ----------
@@ -998,7 +1099,7 @@
 
       // Update all person totals in the DOM
       state.people.forEach(p => {
-        const myEntries = state.entries.filter(ent => ent.personId === p.id);
+        const myEntries = personEntries(p.id);
         const individualTotal = myEntries.reduce((s, ent) => s + entryCost(ent), 0);
         const finalAmount = individualTotal + shareExtra - shareDiscount;
         const el = document.getElementById(`person-total-val-${p.id}`);
@@ -1146,10 +1247,36 @@
       const hasAdjustments = state.discount > 0 || state.extraCharges > 0;
 
       wrap.innerHTML = state.people.map(p => {
-        const myEntries = state.entries.filter(e => e.personId === p.id);
+        const linkedTo = p.sameAs ? state.people.find(x => x.id === p.sameAs) : null;
+        const sourcePerson = linkedTo ? state.people.find(x => x.id === effectivePersonId(p.id)) : null;
+        const myEntries = personEntries(p.id);
         const individualTotal = myEntries.reduce((s, e) => s + entryCost(e), 0);
         const finalAmount = individualTotal + shareExtra - shareDiscount;
-        const rows = myEntries.map(e => `
+        const sameAsOptions = [
+          `<option value="">Own bill</option>`,
+          ...state.people
+            .filter(other => other.id !== p.id && effectivePersonId(other.id) !== p.id)
+            .map(other => `<option value="${other.id}" ${p.sameAs === other.id ? 'selected' : ''}>Same as ${escapeHtml(other.name)}</option>`)
+        ].join('');
+        const rows = myEntries.map(e => {
+          const dish = state.dishes.find(d => d.id === e.dishId);
+          const dishName = dish ? dish.name : 'Unknown dish';
+          if (linkedTo) {
+            return `
+      <div class="entry-row read-only">
+        <select disabled>
+          <option selected>${escapeHtml(dishName)}</option>
+        </select>
+        <div class="frac-wrap">
+          <input type="number" disabled value="${e.num}">
+          <span>/</span>
+          <input type="number" disabled value="${e.denom}">
+        </div>
+        <div class="entry-cost">₹${fmt(entryCost(e))}</div>
+        <span></span>
+      </div>`;
+          }
+          return `
       <div class="entry-row">
         <select onchange="updateEntry('${e.id}','dishId',this.value)">
           ${dishOptions(e.dishId)}
@@ -1164,10 +1291,16 @@
         <div id="entry-cost-val-${e.id}" class="entry-cost">₹${fmt(entryCost(e))}</div>
         <span></span>
         <button class="icon-btn" onclick="removeEntry('${e.id}')" title="Remove item">✕</button>
-      </div>`).join('');
+      </div>`;
+        }).join('');
+
+        const sameAsBanner = linkedTo && sourcePerson ? `
+        <div class="same-as-banner">
+          Same bill as <strong>${escapeHtml(sourcePerson.name)}</strong>${myEntries.length ? ' — items below are mirrored for reference.' : ' — add items under ' + escapeHtml(sourcePerson.name) + ' to update this total.'}
+        </div>` : '';
 
         return `
-    <div class="person">
+    <div class="person${linkedTo ? ' same-as-linked' : ''}">
       <div class="person-head">
         <input type="text" id="person-name-${p.id}" value="${escapeHtml(p.name)}"
           oninput="updatePerson('${p.id}', this.value)" onblur="render()">
@@ -1175,7 +1308,14 @@
         <button class="icon-btn" onclick="removePerson('${p.id}')" title="Remove person">✕</button>
       </div>
       <div class="person-body">
-        ${rows || '<div class="empty-hint">No dishes claimed yet.</div>'}
+        <div class="same-as-row">
+          <label for="same-as-${p.id}">Bill mode</label>
+          <select id="same-as-${p.id}" onchange="updateSameAs('${p.id}', this.value || null)">
+            ${sameAsOptions}
+          </select>
+        </div>
+        ${sameAsBanner}
+        ${rows || (linkedTo ? '' : '<div class="empty-hint">No dishes claimed yet.</div>')}
         <button class="add-btn" onclick="addEntry('${p.id}')">+ Add item for ${escapeHtml(p.name)}</button>
         <div class="person-adjustments-hint" id="person-adjustments-${p.id}" style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--line); display: ${hasAdjustments ? 'flex' : 'none'}; justify-content: space-between;">
           <span id="person-base-val-${p.id}">Base: ₹${fmt(individualTotal)}</span>
@@ -1197,7 +1337,8 @@
       const grandTotal = assignedTotal + (Number(state.extraCharges) || 0) - (Number(state.discount) || 0);
 
       const peopleRows = state.people.map(p => {
-        const individualTotal = state.entries.filter(e => e.personId === p.id).reduce((s, e) => s + entryCost(e), 0);
+        const sourcePerson = p.sameAs ? state.people.find(x => x.id === effectivePersonId(p.id)) : null;
+        const individualTotal = personIndividualTotal(p.id);
         const finalAmount = individualTotal + shareExtra - shareDiscount;
         let breakdownStr = '';
         if (state.discount > 0 || state.extraCharges > 0) {
@@ -1205,12 +1346,16 @@
             (₹${fmt(individualTotal)} base + ₹${fmt(shareExtra)} extra - ₹${fmt(shareDiscount)} discount)
           </div>`;
         }
+        const sameAsNote = sourcePerson && sourcePerson.id !== p.id
+          ? `<div style="font-size: 11px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; margin-top: -2px; margin-bottom: 6px;">same as ${escapeHtml(sourcePerson.name)}</div>`
+          : '';
         return `
           <div>
             <div class="receipt-line">
               <span>${escapeHtml(p.name)}</span>
               <span class="mono">₹${fmt(finalAmount)}</span>
             </div>
+            ${sameAsNote}
             ${breakdownStr}
           </div>
         `;
